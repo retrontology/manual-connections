@@ -5,7 +5,9 @@ Requires=pia-wg.service
 
 [Service]
 Type=oneshot
+ExecStartPre=/bin/sleep 30
 ExecStart=/usr/local/bin/pia-monitor.sh
+TimeoutStartSec=120
 User=root
 Group=root
 
