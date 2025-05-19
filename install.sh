@@ -4,9 +4,12 @@
 sudo cp PIA/pia.rsa.4096.crt /etc/ssl/certs/
 
 # Copy the scripts to /usr/local/bin
-sudo cp PIA/wg.sh /usr/local/bin/wg.sh
-sudo cp PIA/wg-monitor.sh /usr/local/bin/wg-monitor.sh
-sudo chmod +x /usr/local/bin/wg.sh
+sudo cp PIA/pia.sh /usr/local/bin/pia.sh
+sudo cp PIA/pia-monitor.sh /usr/local/bin/pia-monitor.sh
+sudo chmod +x /usr/local/bin/pia.sh
+
+# Copy the config to /etc/default/
+sudo cp PIA/pia-config.sh /etc/default/pia-config
 
 # Copy the systemd files
 sudo cp systemd/pia-wg.service /etc/systemd/system/
