@@ -5,11 +5,9 @@ netname="enp1s0"
 vpnname="pia"
 localnet="192.168.1.0/24"
 certloc="/etc/ssl/certs/pia.rsa.4096.crt"
-#services=("transmission-daemon" "jackett" "radarr" "sonarr")
-services=()
 
 vpnport="51820/udp"
-tools=(wg-quick curl jq resolvconf ufw systemctl)
+tools=(wg-quick curl jq iptables)
 serverlist_url='https://serverlist.piaservers.net/vpninfo/servers/v4'
 
 retry=5
@@ -85,30 +83,46 @@ function get_server_info ()
     #echo "WG_CN: $wg_cn"
 }
 
-function fw_start ()
+function fw_reset ()
 {
-    sudo sysctl -p
-    sudo ufw --force reset
-    sudo ufw default deny outgoing
-    sudo ufw default deny incoming
-    sudo ufw allow in from $wg_ip to any
-    sudo ufw allow in from $dnsServer
-    sudo ufw allow out from any to $dnsServer
-    sudo ufw allow out on $vpnname
-    sudo ufw allow in on $vpnname
-    sudo ufw allow in on $netname from $localnet
-    sudo ufw allow out on $netname to $localnet
-    
-    sudo ufw disable
-    sudo ufw --force enable
+    # Reset iptables
+    sudo iptables -F
+    sudo iptables -X
+    sudo iptables -t nat -F
+    sudo iptables -t nat -X
+    sudo iptables -t mangle -F
+    sudo iptables -t mangle -X
+    sudo iptables -P INPUT ACCEPT
+    sudo iptables -P FORWARD ACCEPT
+    sudo iptables -P OUTPUT ACCEPT
 }
 
-function fw_stop ()
+function fw_start ()
 {
-    sudo sysctl -p
-    sudo ufw --force reset
-    sudo ufw disable
+    # Reset iptables
+    fw_reset
+
+    # Allow loopback
+    sudo iptables -A INPUT -i lo -j ACCEPT
+    sudo iptables -A OUTPUT -o lo -j ACCEPT
+
+    # Allow established/related connections
+    sudo iptables -A INPUT -m conntrack --ctstate ESTABLISHED,RELATED -j ACCEPT
+    sudo iptables -A OUTPUT -m conntrack --ctstate ESTABLISHED,RELATED -j ACCEPT
+
+    # Allow DNS via wireguard DNS server
+    sudo iptables -A OUTPUT -o $vpnname -p udp --dport 53 -d $dnsServer -j ACCEPT
+
+    # Allow all traffic through wireguard interface
+    sudo iptables -A OUTPUT -o $vpnname -j ACCEPT
+    sudo iptables -A INPUT -i $vpnname -j ACCEPT
+
+    # Allow local network traffic
+    sudo iptables -A INPUT -i $netname -s $localnet -j ACCEPT
+    sudo iptables -A OUTPUT -o $netname -d $localnet -j ACCEPT
 }
+
+
 
 function wg_start ()
 {
@@ -188,7 +202,7 @@ function stop ()
 {
     check_default_tools
     wg_stop
-    fw_stop
+    fw_reset
     services_stop
 }
 
