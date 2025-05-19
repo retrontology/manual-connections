@@ -6,7 +6,7 @@ TOOLS=(wg-quick curl jq iptables)
 SERVERLIST_URL='https://serverlist.piaservers.net/vpninfo/servers/v4'
 
 # Import the config
-source /etc/default/wg-config
+source /etc/default/pia-config
 
 retry=5
 usage="${0##*/} <start/stop>"
