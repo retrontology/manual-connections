@@ -6,6 +6,7 @@ After=pia-wg.service
 [Timer]
 OnBootSec=5min
 OnActiveSec=5min
+OnUnitActiveSec=5min
 Unit=pia-wg-monitor.service
 
 [Install]
