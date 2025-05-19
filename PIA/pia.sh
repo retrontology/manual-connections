@@ -95,18 +95,20 @@ function fw_reset ()
     sudo iptables -t nat -X
     sudo iptables -t mangle -F
     sudo iptables -t mangle -X
-    sudo iptables -P INPUT ACCEPT
-    sudo iptables -P FORWARD ACCEPT
-    sudo iptables -P OUTPUT ACCEPT
-
-    # Save iptables rules
-    sudo iptables-save > /etc/iptables/rules.v4
 }
 
 function fw_start ()
 {
+    # Save iptables rules as backup
+    sudo iptables-save > /etc/iptables/rules.v4.bak
+
     # Reset iptables
     fw_reset
+
+    # Block all traffic
+    sudo iptables -A INPUT -j DROP
+    sudo iptables -A OUTPUT -j DROP
+    sudo iptables -P FORWARD -j DROP
 
     # Allow loopback
     sudo iptables -A INPUT -i lo -j ACCEPT
@@ -126,6 +128,18 @@ function fw_start ()
     # Allow local network traffic
     sudo iptables -A INPUT -i $LOCAL_DEV -s $LOCAL_NET -j ACCEPT
     sudo iptables -A OUTPUT -o $LOCAL_DEV -d $LOCAL_NET -j ACCEPT
+
+    # Save iptables rules
+    sudo iptables-save > /etc/iptables/rules.v4
+}
+
+function fw_stop ()
+{
+    # Reset iptables
+    fw_reset
+
+    # Restore iptables rules
+    sudo iptables-restore < /etc/iptables/rules.v4.bak
 
     # Save iptables rules
     sudo iptables-save > /etc/iptables/rules.v4
