@@ -15,9 +15,9 @@ A fork of [pia-foss/manual-connections](https://github.com/pia-foss/manual-conne
 Change the following variables at the beginning of the `wg.sh` script to suit your needs:
 - `region`: The PIA region you want to use
 - `netname`: The physical interface you will connect to the VPN with
-- `vpnname`: The name you want to use for the virtual Wireguard device
+- `WG_DEV`: The name you want to use for the virtual Wireguard device
 - `localnet`: The netmask of the local network you want to allow through the firewall
-- `certloc`: The location of the PIA certificate file
+- `WG_CERT`: The location of the PIA certificate file
 - `services`: An array of the systemd services you want to run through the VPN
 
 ## Usage

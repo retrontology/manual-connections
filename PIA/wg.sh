@@ -1,23 +1,19 @@
 #!/bin/bash
 
-region="fi"
-netname="enp1s0"
-vpnname="pia"
-localnet="192.168.1.0/24"
-certloc="/etc/ssl/certs/pia.rsa.4096.crt"
+WG_DEV="pia"
+WG_CERT="/etc/ssl/certs/pia.rsa.4096.crt"
+TOOLS=(wg-quick curl jq iptables)
+SERVERLIST_URL='https://serverlist.piaservers.net/vpninfo/servers/v4'
 
-vpnport="51820/udp"
-tools=(wg-quick curl jq iptables)
-serverlist_url='https://serverlist.piaservers.net/vpninfo/servers/v4'
+# Import the config
+source /etc/default/wg-config
 
 retry=5
-usage="${0##*/} <start/stop> [pia username] [pia password]"
+usage="${0##*/} <start/stop>"
 
 function parse_args ()
 {
     func=$1
-    USER=$2
-    PASS=$3
 }
 
 function check_tool ()
@@ -33,7 +29,7 @@ function check_tool ()
 
 function check_default_tools ()
 {
-    for i in "${tools[@]}";
+    for i in "${TOOLS[@]}";
     do
         check_tool
     done
@@ -41,12 +37,12 @@ function check_default_tools ()
 
 function get_token ()
 {
-    #echo "User: $USER"
-    #echo "Pass: $PASS"
+    #echo "User: $PIA_USER"
+    #echo "Pass: $PIA_PASS"
     local tries=0
     while [ $tries -lt $retry ]
     do
-        generateTokenResponse=$(curl -s -u "$USER:$PASS" "https://privateinternetaccess.com/gtoken/generateToken")
+        generateTokenResponse=$(curl -s -u "$PIA_USER:$PIA_PASS" "https://privateinternetaccess.com/gtoken/generateToken")
         if [ "$(echo "$generateTokenResponse" | jq -r '.status')" == "OK" ]; then
             break
         fi
@@ -65,8 +61,8 @@ function get_server_info ()
     local tries=0
     while [ $tries -lt $retry ]
     do
-        all_region_data=$(curl -s "$serverlist_url" | head -1)
-        regionData="$( echo $all_region_data | jq --arg REGION_ID "$region" -r '.regions[] | select(.id==$REGION_ID)')"
+        all_region_data=$(curl -s "$SERVERLIST_URL" | head -1)
+        regionData="$( echo $all_region_data | jq --arg REGION_ID "$PIA_REGION" -r '.regions[] | select(.id==$REGION_ID)')"
         if [[ $regionData ]]; then
             break
         fi
@@ -111,15 +107,15 @@ function fw_start ()
     sudo iptables -A OUTPUT -m conntrack --ctstate ESTABLISHED,RELATED -j ACCEPT
 
     # Allow DNS via wireguard DNS server
-    sudo iptables -A OUTPUT -o $vpnname -p udp --dport 53 -d $dnsServer -j ACCEPT
+    sudo iptables -A OUTPUT -o $WG_DEV -p udp --dport 53 -d $dnsServer -j ACCEPT
 
     # Allow all traffic through wireguard interface
-    sudo iptables -A OUTPUT -o $vpnname -j ACCEPT
-    sudo iptables -A INPUT -i $vpnname -j ACCEPT
+    sudo iptables -A OUTPUT -o $WG_DEV -j ACCEPT
+    sudo iptables -A INPUT -i $WG_DEV -j ACCEPT
 
     # Allow local network traffic
-    sudo iptables -A INPUT -i $netname -s $localnet -j ACCEPT
-    sudo iptables -A OUTPUT -o $netname -d $localnet -j ACCEPT
+    sudo iptables -A INPUT -i $netname -s $NET_LOCAL -j ACCEPT
+    sudo iptables -A OUTPUT -o $netname -d $NET_LOCAL -j ACCEPT
 }
 
 function wg_start ()
@@ -134,7 +130,7 @@ function wg_start ()
     do
         wireguard_json=$(curl -s -G \
         --connect-to "${wg_cn}::${wg_ip}:" \
-        --cacert "${certloc}" \
+        --cacert "${WG_CERT}" \
         --data-urlencode "pt=${wg_token}" \
         --data-urlencode "pubkey=${pubKey}" \
         "https://${wg_cn}:1337/addKey" )
@@ -161,14 +157,14 @@ function wg_start ()
     PublicKey = $(echo "$wireguard_json" | jq -r '.server_key')
     AllowedIPs = 0.0.0.0/0
     Endpoint = ${wg_ip}:$(echo "$wireguard_json" | jq -r '.server_port')
-    " | sudo tee /etc/wireguard/$vpnname.conf || exit 1
-    wg-quick up $vpnname || exit 1
+    " | sudo tee /etc/wireguard/$WG_DEV.conf || exit 1
+    wg-quick up $WG_DEV || exit 1
 }
 
 function wg_stop ()
 {
-    sudo wg-quick down $vpnname
-    sudo rm /etc/wireguard/$vpnname.conf
+    sudo wg-quick down $WG_DEV
+    sudo rm /etc/wireguard/$WG_DEV.conf
 }
 
 function start ()
@@ -186,7 +182,7 @@ function stop ()
     fw_reset
 }
 
-parse_args $1 $2 $3
+parse_args $1
 case $func in
     start)
         start;;
