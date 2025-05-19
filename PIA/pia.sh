@@ -98,6 +98,9 @@ function fw_reset ()
     sudo iptables -P INPUT ACCEPT
     sudo iptables -P FORWARD ACCEPT
     sudo iptables -P OUTPUT ACCEPT
+
+    # Save iptables rules
+    sudo iptables-save > /etc/iptables/rules.v4
 }
 
 function fw_start ()
@@ -123,6 +126,9 @@ function fw_start ()
     # Allow local network traffic
     sudo iptables -A INPUT -i $LOCAL_DEV -s $LOCAL_NET -j ACCEPT
     sudo iptables -A OUTPUT -o $LOCAL_DEV -d $LOCAL_NET -j ACCEPT
+
+    # Save iptables rules
+    sudo iptables-save > /etc/iptables/rules.v4
 }
 
 function wg_start ()
