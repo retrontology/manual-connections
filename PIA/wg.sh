@@ -11,7 +11,7 @@ tools=(wg-quick curl jq iptables)
 serverlist_url='https://serverlist.piaservers.net/vpninfo/servers/v4'
 
 retry=5
-usage="${0##*/} <start/stop/restart> [pia username] [pia password]"
+usage="${0##*/} <start/stop> [pia username] [pia password]"
 
 function parse_args ()
 {
@@ -122,8 +122,6 @@ function fw_start ()
     sudo iptables -A OUTPUT -o $netname -d $localnet -j ACCEPT
 }
 
-
-
 function wg_start ()
 {
     get_token
@@ -173,29 +171,12 @@ function wg_stop ()
     sudo rm /etc/wireguard/$vpnname.conf
 }
 
-function services_start ()
-{
-    for i in "${services[@]}";
-    do
-        sudo systemctl start $i
-    done
-}
-
-function services_stop ()
-{
-    for i in "${services[@]}";
-    do
-        sudo systemctl stop $i
-    done
-}
-
 function start ()
 {
     check_default_tools
     get_server_info
     wg_start
     fw_start
-    services_start
 }
 
 function stop ()
@@ -203,13 +184,6 @@ function stop ()
     check_default_tools
     wg_stop
     fw_reset
-    services_stop
-}
-
-function restart ()
-{
-    stop
-    start
 }
 
 parse_args $1 $2 $3
@@ -218,8 +192,6 @@ case $func in
         start;;
     stop)
         stop;;
-    restart)
-        restart;;
     *)
         echo $usage
         exit 1
