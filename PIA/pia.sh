@@ -1,8 +1,15 @@
 #!/bin/bash
 
+# The wireguard device name
 WG_DEV="pia"
+
+# The wireguard certificate file
 WG_CERT="/etc/ssl/certs/pia.rsa.4096.crt"
+
+# The tools required
 TOOLS=(wg-quick curl jq iptables)
+
+# The server list URL
 SERVERLIST_URL='https://serverlist.piaservers.net/vpninfo/servers/v4'
 
 # Import the config
@@ -114,8 +121,8 @@ function fw_start ()
     sudo iptables -A INPUT -i $WG_DEV -j ACCEPT
 
     # Allow local network traffic
-    sudo iptables -A INPUT -i $netname -s $NET_LOCAL -j ACCEPT
-    sudo iptables -A OUTPUT -o $netname -d $NET_LOCAL -j ACCEPT
+    sudo iptables -A INPUT -i $LOCAL_DEV -s $LOCAL_NET -j ACCEPT
+    sudo iptables -A OUTPUT -o $LOCAL_DEV -d $LOCAL_NET -j ACCEPT
 }
 
 function wg_start ()
