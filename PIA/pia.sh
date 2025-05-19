@@ -110,8 +110,8 @@ function fw_start ()
     sudo iptables -A OUTPUT -o lo -j ACCEPT
 
     # Allow established/related connections
-    sudo iptables -A INPUT -m conntrack --ctstate ESTABLISHED,RELATED -j ACCEPT
-    sudo iptables -A OUTPUT -m conntrack --ctstate ESTABLISHED,RELATED -j ACCEPT
+    #sudo iptables -A INPUT -m conntrack --ctstate ESTABLISHED,RELATED -j ACCEPT
+    #sudo iptables -A OUTPUT -m conntrack --ctstate ESTABLISHED,RELATED -j ACCEPT
 
     # Allow DNS via wireguard DNS server
     sudo iptables -A OUTPUT -o $WG_DEV -p udp --dport 53 -d $dnsServer -j ACCEPT
