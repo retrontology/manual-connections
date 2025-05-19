@@ -106,9 +106,9 @@ function fw_start ()
     fw_reset
 
     # Block all traffic
-    sudo iptables -A INPUT -j DROP
-    sudo iptables -A OUTPUT -j DROP
-    sudo iptables -P FORWARD -j DROP
+    sudo iptables -A INPUT DROP
+    sudo iptables -A OUTPUT DROP
+    sudo iptables -P FORWARD DROP
 
     # Allow loopback
     sudo iptables -A INPUT -i lo -j ACCEPT
