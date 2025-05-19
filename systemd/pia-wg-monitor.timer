@@ -1,6 +1,6 @@
 [Unit]
 Description=Timer for PIA WireGuard Connection Monitor
-Requires=pia-wg-monitor.service
+BindsTo=pia-wg-monitor.service
 After=pia-wg.service
 
 [Timer]
