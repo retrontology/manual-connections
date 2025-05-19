@@ -1,0 +1,12 @@
+[Unit]
+Description=Timer for PIA WireGuard Connection Monitor
+Requires=pia-wg-monitor.service
+After=pia-wg.service
+
+[Timer]
+OnBootSec=5min
+OnActiveSec=5min
+Unit=pia-wg-monitor.service
+
+[Install]
+WantedBy=pia-wg.service

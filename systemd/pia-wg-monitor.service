@@ -1,0 +1,13 @@
+[Unit]
+Description=PIA WireGuard Connection Monitor
+After=pia-wg.service
+Requires=pia-wg.service
+
+[Service]
+Type=oneshot
+ExecStart=/usr/local/bin/wg-monitor.sh
+User=root
+Group=root
+
+[Install]
+WantedBy=multi-user.target

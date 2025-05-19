@@ -1,0 +1,15 @@
+[Unit]
+Description=PIA WireGuard VPN Service
+After=network.target
+Wants=network-online.target
+
+[Service]
+Type=oneshot
+RemainAfterExit=yes
+ExecStart=/usr/local/bin/wg.sh start
+ExecStop=/usr/local/bin/wg.sh stop
+User=root
+Group=root
+
+[Install]
+WantedBy=multi-user.target
