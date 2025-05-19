@@ -5,7 +5,7 @@ Requires=pia-wg.service
 
 [Service]
 Type=oneshot
-ExecStart=/usr/local/bin/wg-monitor.sh
+ExecStart=/usr/local/bin/pia-monitor.sh
 User=root
 Group=root
 

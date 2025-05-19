@@ -6,8 +6,8 @@ Wants=network-online.target
 [Service]
 Type=oneshot
 RemainAfterExit=yes
-ExecStart=/usr/local/bin/wg.sh start
-ExecStop=/usr/local/bin/wg.sh stop
+ExecStart=/usr/local/bin/pia.sh start
+ExecStop=/usr/local/bin/pia.sh stop
 User=root
 Group=root
 
