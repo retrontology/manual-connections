@@ -7,7 +7,7 @@ WG_DEV="pia"
 WG_CERT="/etc/ssl/certs/pia.rsa.4096.crt"
 
 # The tools required
-TOOLS=(wg-quick curl jq iptables)
+TOOLS=(wg-quick curl jq iptables iptables-save)
 
 # The server list URL
 SERVERLIST_URL='https://serverlist.piaservers.net/vpninfo/servers/v4'
@@ -142,7 +142,7 @@ function fw_stop ()
     # Reset iptables
     fw_reset
 
-    # Restore iptables rules
+    # Allow all traffic
     sudo iptables -P INPUT ACCEPT
     sudo iptables -P OUTPUT ACCEPT
     sudo iptables -P FORWARD ACCEPT
