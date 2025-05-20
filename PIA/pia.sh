@@ -100,7 +100,7 @@ function fw_reset ()
 function fw_start ()
 {
     # Save iptables rules as backup
-    sudo iptables-save > /etc/iptables/rules.v4.bak
+    #sudo iptables-save > /etc/iptables/rules.v4.bak
 
     # Reset iptables
     fw_reset
@@ -115,8 +115,11 @@ function fw_start ()
     sudo iptables -A OUTPUT -o lo -j ACCEPT
 
     # Allow established/related connections
-    #sudo iptables -A INPUT -m conntrack --ctstate ESTABLISHED,RELATED -j ACCEPT
-    #sudo iptables -A OUTPUT -m conntrack --ctstate ESTABLISHED,RELATED -j ACCEPT
+    sudo iptables -A INPUT -m conntrack --ctstate ESTABLISHED,RELATED -j ACCEPT
+    sudo iptables -A OUTPUT -m conntrack --ctstate ESTABLISHED,RELATED -j ACCEPT
+
+    # Allow initial WireGuard handshake
+    sudo iptables -A OUTPUT -d $wg_ip -p udp --dport $wg_port -j ACCEPT
 
     # Allow DNS via wireguard DNS server
     sudo iptables -A OUTPUT -o $WG_DEV -p udp --dport 53 -d $dnsServer -j ACCEPT
@@ -139,7 +142,9 @@ function fw_stop ()
     fw_reset
 
     # Restore iptables rules
-    sudo iptables-restore < /etc/iptables/rules.v4.bak
+    sudo iptables -P INPUT ACCEPT
+    sudo iptables -P OUTPUT ACCEPT
+    sudo iptables -P FORWARD ACCEPT
 
     # Save iptables rules
     sudo iptables-save > /etc/iptables/rules.v4
@@ -171,6 +176,7 @@ function wg_start ()
         >&2 echo -e "Server did not return OK. Stopping now."
         exit 1
     fi
+    wg_port="$(echo "$wireguard_json" | jq -r '.server_port')"
     dnsServer="$(echo "$wireguard_json" | jq -r '.dns_servers[0]')"
     wg_stop
     sudo mkdir -p /etc/wireguard
@@ -183,7 +189,7 @@ function wg_start ()
     PersistentKeepalive = 25
     PublicKey = $(echo "$wireguard_json" | jq -r '.server_key')
     AllowedIPs = 0.0.0.0/0
-    Endpoint = ${wg_ip}:$(echo "$wireguard_json" | jq -r '.server_port')
+    Endpoint = ${wg_ip}:${wg_port}
     " | sudo tee /etc/wireguard/$WG_DEV.conf || exit 1
     wg-quick up $WG_DEV || exit 1
 }
