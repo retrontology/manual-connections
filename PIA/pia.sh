@@ -212,7 +212,7 @@ function stop ()
 {
     check_default_tools
     wg_stop
-    fw_reset
+    fw_stop
 }
 
 parse_args $1
