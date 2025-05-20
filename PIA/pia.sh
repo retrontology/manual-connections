@@ -115,11 +115,12 @@ function fw_start ()
     sudo iptables -A OUTPUT -o lo -j ACCEPT
 
     # Allow established/related connections
-    sudo iptables -A INPUT -m conntrack --ctstate ESTABLISHED,RELATED -j ACCEPT
-    sudo iptables -A OUTPUT -m conntrack --ctstate ESTABLISHED,RELATED -j ACCEPT
+    #sudo iptables -A INPUT -m conntrack --ctstate ESTABLISHED,RELATED -j ACCEPT
+    #sudo iptables -A OUTPUT -m conntrack --ctstate ESTABLISHED,RELATED -j ACCEPT
 
-    # Allow initial WireGuard handshake
+    # Allow Wireguard connection
     sudo iptables -A OUTPUT -d $wg_ip -p udp --dport $wg_port -j ACCEPT
+    sudo iptables -A INPUT -s $wg_ip -p udp --sport $wg_port -j ACCEPT
 
     # Allow DNS via wireguard DNS server
     sudo iptables -A OUTPUT -o $WG_DEV -p udp --dport 53 -d $dnsServer -j ACCEPT
