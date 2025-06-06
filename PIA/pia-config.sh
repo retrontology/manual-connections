@@ -1,10 +1,10 @@
 #!/bin/bash
 
-# The network interface to allow access to the local network
-LOCAL_DEV="eth0"
-
-# The CIDR of the local network
-LOCAL_NET="192.168.1.0/24"
+# Local networks
+declare -A LOCAL_NET=(
+    ["eth0"]="192.168.1.0/24;192.168.2.0/24"
+    ["eth1"]="192.168.10.0/24"
+)
 
 # The username and password for the PIA account
 PIA_USER="your_username"

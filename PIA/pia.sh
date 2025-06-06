@@ -114,10 +114,6 @@ function fw_start ()
     sudo iptables -A INPUT -i lo -j ACCEPT
     sudo iptables -A OUTPUT -o lo -j ACCEPT
 
-    # Allow established/related connections
-    #sudo iptables -A INPUT -m conntrack --ctstate ESTABLISHED,RELATED -j ACCEPT
-    #sudo iptables -A OUTPUT -m conntrack --ctstate ESTABLISHED,RELATED -j ACCEPT
-
     # Allow Wireguard connection
     sudo iptables -A OUTPUT -d $wg_ip -p udp --dport $wg_port -j ACCEPT
     sudo iptables -A INPUT -s $wg_ip -p udp --sport $wg_port -j ACCEPT
@@ -130,8 +126,13 @@ function fw_start ()
     sudo iptables -A INPUT -i $WG_DEV -j ACCEPT
 
     # Allow local network traffic
-    sudo iptables -A INPUT -i $LOCAL_DEV -s $LOCAL_NET -j ACCEPT
-    sudo iptables -A OUTPUT -o $LOCAL_DEV -d $LOCAL_NET -j ACCEPT
+    for LOCAL_DEV in ${!LOCAL_NET[@]}; do
+        IFS=';' read -r -a LOCAL_CIDRS <<< "${LOCAL_NET[$LOCAL_DEV]}"
+        for LOCAL_CIDR in "${LOCAL_CIDRS[@]}"; do
+            sudo iptables -A INPUT -i $LOCAL_DEV -s $LOCAL_CIDR -j ACCEPT
+            sudo iptables -A OUTPUT -o $LOCAL_DEV -d $LOCAL_CIDR -j ACCEPT
+        done
+    done
 
     # Save iptables rules
     sudo iptables-save > /etc/iptables/rules.v4
