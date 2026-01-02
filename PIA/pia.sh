@@ -49,14 +49,29 @@ function get_token ()
     local tries=0
     while [ $tries -lt $retry ]
     do
-        generateTokenResponse=$(curl -s -u "$PIA_USER:$PIA_PASS" "https://privateinternetaccess.com/gtoken/generateToken")
-        if [ "$(echo "$generateTokenResponse" | jq -r '.status')" == "OK" ]; then
+        generateTokenResponse=$(curl -s --max-time 30 --connect-timeout 10 -u "$PIA_USER:$PIA_PASS" "https://privateinternetaccess.com/gtoken/generateToken" 2>&1)
+        curl_exit_code=$?
+        
+        if [ $curl_exit_code -ne 0 ]; then
+            >&2 echo "Failed to retrieve authentication token (attempt $((tries+1))/$retry): curl error $curl_exit_code"
+            if [ $tries -lt $((retry-1)) ]; then
+                sleep 2
+            fi
+            ((tries=tries+1))
+            continue
+        fi
+        
+        if [ "$(echo "$generateTokenResponse" | jq -r '.status' 2>/dev/null)" == "OK" ]; then
             break
+        fi
+        >&2 echo "Authentication failed (attempt $((tries+1))/$retry)"
+        if [ $tries -lt $((retry-1)) ]; then
+            sleep 2
         fi
         ((tries=tries+1))
     done
-    if [ "$(echo "$generateTokenResponse" | jq -r '.status')" != "OK" ]; then
-        echo -e "Could not authenticate with the login credentials provided!"
+    if [ "$(echo "$generateTokenResponse" | jq -r '.status' 2>/dev/null)" != "OK" ]; then
+        >&2 echo -e "Could not authenticate with the login credentials provided after $retry attempts!"
         exit 1
     fi
     wg_token=$(echo "$generateTokenResponse" | jq -r '.token')
@@ -68,15 +83,40 @@ function get_server_info ()
     local tries=0
     while [ $tries -lt $retry ]
     do
-        all_region_data=$(curl -s "$SERVERLIST_URL" | head -1)
-        regionData="$( echo $all_region_data | jq --arg REGION_ID "$PIA_REGION" -r '.regions[] | select(.id==$REGION_ID)')"
+        all_region_data=$(curl -s --max-time 30 --connect-timeout 10 "$SERVERLIST_URL" 2>&1)
+        curl_exit_code=$?
+        
+        if [ $curl_exit_code -ne 0 ]; then
+            >&2 echo "Failed to retrieve server list (attempt $((tries+1))/$retry): curl error $curl_exit_code"
+            if [ $tries -lt $((retry-1)) ]; then
+                sleep 2
+            fi
+            ((tries=tries+1))
+            continue
+        fi
+        
+        if [ -z "$all_region_data" ]; then
+            >&2 echo "Server list is empty (attempt $((tries+1))/$retry)"
+            if [ $tries -lt $((retry-1)) ]; then
+                sleep 2
+            fi
+            ((tries=tries+1))
+            continue
+        fi
+        
+        regionData="$( echo "$all_region_data" | head -1 | jq --arg REGION_ID "$PIA_REGION" -r '.regions[] | select(.id==$REGION_ID)' 2>/dev/null)"
         if [[ $regionData ]]; then
             break
+        fi
+        >&2 echo "Region $PIA_REGION not found in server list (attempt $((tries+1))/$retry)"
+        if [ $tries -lt $((retry-1)) ]; then
+            sleep 2
         fi
         ((tries=tries+1))
     done
     if [[ ! $regionData ]]; then
-        echo -e "The REGION_ID $region is not valid."
+        >&2 echo -e "Failed to retrieve server info for REGION_ID $PIA_REGION after $retry attempts."
+        >&2 echo -e "This may be due to network connectivity issues or an invalid region."
         exit 1
     fi
     #echo $regionData
@@ -162,20 +202,35 @@ function wg_start ()
     local tries=0
     while [ $tries -lt $retry ]
     do
-        wireguard_json=$(curl -s -G \
+        wireguard_json=$(curl -s --max-time 30 --connect-timeout 10 -G \
         --connect-to "${wg_cn}::${wg_ip}:" \
         --cacert "${WG_CERT}" \
         --data-urlencode "pt=${wg_token}" \
         --data-urlencode "pubkey=${pubKey}" \
-        "https://${wg_cn}:1337/addKey" )
+        "https://${wg_cn}:1337/addKey" 2>&1)
+        curl_exit_code=$?
+        
+        if [ $curl_exit_code -ne 0 ]; then
+            >&2 echo "Failed to connect to WireGuard server (attempt $((tries+1))/$retry): curl error $curl_exit_code"
+            if [ $tries -lt $((retry-1)) ]; then
+                sleep 2
+            fi
+            ((tries=tries+1))
+            continue
+        fi
+        
         #echo $wireguard_json
-        if [ "$(echo "$wireguard_json" | jq -r '.status')" == "OK" ]; then
+        if [ "$(echo "$wireguard_json" | jq -r '.status' 2>/dev/null)" == "OK" ]; then
             break
+        fi
+        >&2 echo "WireGuard server did not return OK (attempt $((tries+1))/$retry)"
+        if [ $tries -lt $((retry-1)) ]; then
+            sleep 2
         fi
         ((tries=tries+1))
     done
-    if [ "$(echo "$wireguard_json" | jq -r '.status')" != "OK" ]; then
-        >&2 echo -e "Server did not return OK. Stopping now."
+    if [ "$(echo "$wireguard_json" | jq -r '.status' 2>/dev/null)" != "OK" ]; then
+        >&2 echo -e "Server did not return OK after $retry attempts. Stopping now."
         exit 1
     fi
     wg_port="$(echo "$wireguard_json" | jq -r '.server_port')"
