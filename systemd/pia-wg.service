@@ -1,7 +1,7 @@
 [Unit]
 Description=PIA WireGuard VPN Service
 After=network-online.target nss-lookup.target
-Wants=network-online.target
+Wants=network-online.target pia-wg-monitor.timer
 
 [Service]
 Type=oneshot
